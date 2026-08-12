@@ -1,4 +1,4 @@
-name: Naukri Auto Update & Apply
+name: Naukri Auto Profile Refresh
 
 on:
   schedule:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  update-and-apply:
+  refresh-profile:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -19,9 +19,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install Dependencies
-        run: |
-          pip install playwright
-          playwright install chromium
+        run: pip install requests
 
       - name: Run Script
         env:
