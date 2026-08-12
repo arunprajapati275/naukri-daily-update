@@ -19,39 +19,51 @@ def run():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            viewport={'width': 1280, 'height': 800}
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            viewport={'width': 1366, 'height': 768}
         )
         page = context.new_page()
 
         try:
             print("1. Logging into Naukri...")
             page.goto("https://www.naukri.com/nlogin/login", timeout=60000)
-            random_delay(2, 4)
+            random_delay(3, 5)
 
-            page.fill("#usernameField", username)
-            random_delay(1, 2)
-            page.fill("#passwordField", password)
-            random_delay(1, 2)
-            page.click("button[type='submit']")
-            random_delay(5, 8)
+            # Try multiple selectors for username/email
+            user_input = page.locator("#usernameField, input[placeholder*='Email'], input[type='text']").first
+            if user_input.is_visible():
+                user_input.fill(username)
+                random_delay(1, 2)
+            else:
+                print("Username field direct nahi mila, page layout check kar rahe hain...")
 
-            print("2. Profile Status Active & Refreshed!\n")
+            # Try multiple selectors for password
+            pass_input = page.locator("#passwordField, input[placeholder*='Password'], input[type='password']").first
+            if pass_input.is_visible():
+                pass_input.fill(password)
+                random_delay(1, 2)
+
+            # Click Submit button
+            submit_btn = page.locator("button[type='submit'], button:has-text('Login')").first
+            if submit_btn.is_visible():
+                submit_btn.click()
+                random_delay(5, 8)
+
+            print("2. Login attempted. Refreshing session status...")
 
             for kw in keywords:
                 if applied_count >= MAX_TOTAL_APPLIES:
-                    print(f"Reached daily limit of {MAX_TOTAL_APPLIES} applies. Stopping.")
+                    print(f"\nReached daily limit of {MAX_TOTAL_APPLIES} applies. Stopping.")
                     break
 
-                print(f"--- Searching for Keyword: {kw} ---")
+                print(f"\n--- Searching for Keyword: {kw} ---")
                 search_url = f"https://www.naukri.com/{kw.lower().replace(' ', '-')}-jobs-in-delhi-ncr?ctcFilter={min_salary}to50&wfhType=2,3"
                 page.goto(search_url, timeout=60000)
                 random_delay(4, 6)
 
-                # Broad selector to catch all types of job card layouts
-                job_cards = page.locator("article.jobTuple, div.srp-jobtuple-wrapper, div.cust-job-tuple")
+                job_cards = page.locator("article.jobTuple, div.srp-jobtuple-wrapper, div.cust-job-tuple, div.tuple")
                 found_jobs = job_cards.count()
-                print(f"Found {found_jobs} potential job postings on page.\n")
+                print(f"Found {found_jobs} potential job postings on page.")
 
                 for i in range(found_jobs):
                     if applied_count >= MAX_TOTAL_APPLIES:
@@ -60,7 +72,6 @@ def run():
                     try:
                         card = job_cards.nth(i)
                         
-                        # Extract Job Title & Company safely
                         title = "DevOps Role"
                         company = "Hiring Company"
                         
@@ -69,7 +80,7 @@ def run():
                         if card.locator("a.comp-name, a.subTitle").is_visible():
                             company = card.locator("a.comp-name, a.subTitle").inner_text()
 
-                        apply_btn = card.locator("button:has-text('Apply')")
+                        apply_btn = card.locator("button:has-text('Apply'), button:has-text('Easy Apply')").first
                         
                         if apply_btn.is_visible() and apply_btn.is_enabled():
                             apply_btn.click()
@@ -79,11 +90,10 @@ def run():
                             print(f"   Company: {company.strip()}\n")
                             random_delay(6, 10)
                     except Exception as e:
-                        print(f"Skipped 1 item due to layout variation: {e}")
                         continue
 
         except Exception as global_error:
-            print(f"Workflow encountered an error but gracefully exited: {global_error}")
+            print(f"Workflow Exception: {global_error}")
         finally:
             print(f"==========================================")
             print(f"SUMMARY: Total Jobs Applied Today: {applied_count}")
