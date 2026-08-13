@@ -2,8 +2,8 @@ name: Naukri Auto Profile Refresh
 
 on:
   schedule:
-    # Daily Subah 8:30 AM IST (3:00 AM UTC)
-    - cron: '0 3 * * *'
+   # Daily Subah 7:00 AM IST (1:30 AM UTC)
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
